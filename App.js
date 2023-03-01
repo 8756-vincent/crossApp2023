@@ -4,8 +4,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 //screens
-import { HomeScreen } from './.expo/Screens/HomeScreen';
-import { SignUpScreen } from './.expo/Screens/SignUp';
+import { HomeScreen } from './Screens/HomeScreen';
+import { SignUpScreen } from './Screens/SignUp';
 
 const Stack = createNativeStackNavigator();
 
