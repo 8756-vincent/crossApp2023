@@ -23,7 +23,10 @@ import {
   doc,
   setDoc,
   addDoc,
-  collection
+  collection,
+  query,
+  where,
+  onSnapshot
 } from 'firebase/firestore'
 
 const Stack = createNativeStackNavigator();
@@ -35,6 +38,7 @@ const FBdb = getFirestore( FBapp )
 export default function App() {
   const [auth,setAuth] = useState()
   const [ errorMsg, setErrorMsg ] = useState()
+  const [ noteData, setNoteData ] = useState([])
 
   onAuthStateChanged( FBauth, (user) => {
     if( user ) {
@@ -43,6 +47,12 @@ export default function App() {
     }
     else {
       setAuth( null )
+    }
+  })
+
+  useEffect(() => {
+    if( noteData.length === 0 && auth ) {
+      GetData()
     }
   })
 
@@ -66,11 +76,24 @@ export default function App() {
     .catch((err) => console.log(error) )
   }
 
-  const AddData = async () => {
+  const AddData = async ( note ) => {
     const userId = auth.uid
     const path = `users/${userId}/notes`
-    const data = { id: new Date().getTime(), description: "sample data"}
-    const ref = await addDoc( collection( FBdb, path), data )
+    // const data = { id: new Date().getTime(), description: "sample data"}
+    const ref = await addDoc( collection( FBdb, path), note )
+  }
+
+  const GetData = () => {
+    const userId = auth.uid
+    const path = `users/${userId}/notes`
+    const dataQuery = query( collection( FBdb, path ) )
+    const unsubscribe = onSnapshot( dataQuery, ( responseData ) => {
+      let notes = []
+      responseData.forEach( (note) => {
+        notes.push( note.data() )
+      })
+      console.log( notes )
+    })
   }
 
   return (
