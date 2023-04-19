@@ -1,56 +1,44 @@
 import { View, Text, TouchableOpacity, Modal, TextInput, StyleSheet, FlatList } from "react-native"
 import { useNavigation } from "@react-navigation/native"
-import { useState, useEffect } from 'react'
-
+import { useState, useEffect, useContext } from 'react'
+import { AuthContext } from "../contexts/AuthContext"
+import { NoteContext } from "../contexts/NoteContext"
+import { DBContext } from "../contexts/DBcontext"
+import { addDoc, collection } from "firebase/firestore"
+import { ListItem } from "../components/ListItem"
+import { ListItemSeparator} from "../components/ListItemSeparator"
+import IonIcons from '@expo/vector-icons/Ionicons'
 
 export function HomeScreen(props) {
   const navigation = useNavigation()
+  const authStatus = useContext(AuthContext)
+  const Notes = useContext(NoteContext)
+  const DB = useContext( DBContext )
 
   const [showModal, setShowModal] = useState(false)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
 
-  const saveNote = () => {
+  const saveNote = async () => {
     setShowModal(false)
-    const noteObj = { title: title, content: note }
-    props.add(noteObj)
+    const noteObj = { title: title, content: note, date: new Date().getTime() }
+    // add note to firebase
+    const path = `users/${authStatus.uid}/notes`
+    const ref = await addDoc( collection(DB, path), noteObj )
+    setTitle('')
+    setNote('')
   }
 
   useEffect(() => {
-    if (!props.authStatus) {
+    if (!authStatus) {
       navigation.reset({ index: 0, routes: [{ name: "Signin" }] })
     }
-  }, [props.authStatus])
+  }, [authStatus])
 
   const ListClickHandler = (data) => {
     navigation.navigate("Detail", data)
   }
-
-  const ListItem = (props) => {
-    return (
-      <View
-        style={styles.listItem}
-
-      >
-        <TouchableOpacity onPress={
-          () => ListClickHandler({ id: props.id, title: props.title, content: props.content })
-        }
-        >
-          <Text>
-            {props.title}
-          </Text>
-        </TouchableOpacity>
-        <Text>{props.content}</Text>
-      </View>
-    )
-  }
-
-  const ListItemSeparator = (props) => {
-    return (
-      <View style={styles.separator} ></View>
-    )
-  }
-
+  
   return (
     <View style={styles.screen}>
       {/* modal element */}
@@ -76,7 +64,7 @@ export function HomeScreen(props) {
           />
           <View style={styles.buttonsRow}>
             <TouchableOpacity
-              style={styles.button}
+              style={styles.closeButton}
               onPress={() => setShowModal(false)}
             >
               <Text style={styles.buttonText} >Close</Text>
@@ -93,11 +81,19 @@ export function HomeScreen(props) {
       </Modal>
       {/* button to open modal */}
       <TouchableOpacity style={styles.button} onPress={() => setShowModal(true)} >
-        <Text style={styles.buttonText}>Add Note</Text>
+        <IonIcons name="add-outline" size={28} color="white" />
       </TouchableOpacity>
       <FlatList
-        data={props.data}
-        renderItem={({ item }) => (<ListItem title={item.title} id={item.id} content={item.content} />)}
+        data={Notes}
+        renderItem={({ item }) => (
+        <ListItem 
+          title={item.title} 
+          id={item.id} 
+          content={item.content} 
+          date={item.date}
+          handler={ ListClickHandler }
+        />
+        )}
         keyExtractor={item => item.id}
         ItemSeparatorComponent={ListItemSeparator}
       />
@@ -108,6 +104,7 @@ export function HomeScreen(props) {
 const styles = StyleSheet.create({
   screen: {
     justifyContent: "center",
+    position: "relative"
   },
   modal: {
     padding: 10,
@@ -132,12 +129,20 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#000000",
-    padding: 5,
-    flex: 1,
+    padding: 10,
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 999,
   },
   addButton: {
-    padding: 5,
+    padding: 10,
     backgroundColor: "green",
+    flex: 1,
+  },
+  closeButton: {
+    backgroundColor: "#000000",
+    padding: 10,
     flex: 1,
   },
   buttonText: {
@@ -154,9 +159,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between"
   },
-  separator: {
-    backgroundColor: '#CCCCCC',
-    height: 2,
-  }
+  
 })
 
